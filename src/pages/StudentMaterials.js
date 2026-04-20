@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 //import { FaSearch, FaFilePdf, FaFileWord, FaVideo, FaDownload, FaFilter } from 'react-icons/fa';
 import Sidebar from '../components/Sidebar';
-import Header from '../components/Header';
 
 const StudentMaterials = () => {
     // Filter States
@@ -32,7 +31,6 @@ const StudentMaterials = () => {
             <Sidebar />
             
             <main style={styles.main}>
-                <Header />
                 
                 <div style={styles.content}>
                     <h1 style={styles.pageTitle}>Learning Materials</h1>

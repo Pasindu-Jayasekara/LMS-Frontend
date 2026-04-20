@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
     FaHome, FaBook, FaCalendarAlt, FaClipboardList, 
-    FaBullhorn, FaComment, FaSignOutAlt, FaUser 
+    FaBullhorn, FaComment, FaSignOutAlt, FaUser, FaUserPlus, FaBookOpen
 } from 'react-icons/fa';
 
 const TeacherSidebar = () => {
@@ -10,7 +10,7 @@ const TeacherSidebar = () => {
     const location = useLocation();
 
     const handleLogout = () => {
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
         navigate('/');
     };
 
@@ -29,6 +29,9 @@ const TeacherSidebar = () => {
                 <div onClick={() => navigate('/teacher-courses')}>
                     <NavItem icon={<FaBook />} name="My Courses" active={isActive('/teacher-courses')} />
                 </div>
+                <div onClick={() => navigate('/teacher-materials')}>
+                    <NavItem icon={<FaBookOpen />} name="Materials" active={isActive('/teacher-materials')} />
+                </div>
                 <div onClick={() => navigate('/teacher-schedule')}>
                     <NavItem icon={<FaCalendarAlt />} name="Class Schedule" active={isActive('/teacher-schedule')} />
                 </div>
@@ -37,6 +40,9 @@ const TeacherSidebar = () => {
                 </div>
                 <div onClick={() => navigate('/teacher-announcements')}>
                     <NavItem icon={<FaBullhorn />} name="Announcements" active={isActive('/teacher-announcements')} />
+                </div>
+                <div onClick={() => navigate('/teacher/enrollment-requests')}>
+                    <NavItem icon={<FaUserPlus />} name="Enrollment Requests" active={isActive('/teacher/enrollment-requests')} />
                 </div>
                 <div onClick={() => navigate('/teacher-messages')}>
                     <NavItem icon={<FaComment />} name="Messaging" active={isActive('/teacher-messages')} />

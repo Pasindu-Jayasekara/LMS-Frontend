@@ -21,7 +21,7 @@ const Profile = () => {
 
     // Load user from local storage if available
     useEffect(() => {
-        const storedUser = localStorage.getItem('user');
+        const storedUser = sessionStorage.getItem('user');
         if (storedUser) {
             const parsed = JSON.parse(storedUser);
             // Merge stored data with state (simplified for demo)

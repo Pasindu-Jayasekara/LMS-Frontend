@@ -1,184 +1,181 @@
-import React, { useState } from 'react';
-import { FaSearch, FaEdit, FaTrash, FaImage, FaCloudUploadAlt } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { FaBullhorn, FaPlus, FaTrash, FaBell, FaPaperPlane } from 'react-icons/fa';
 import AdminSidebar from '../components/AdminSidebar';
-import Header from '../components/Header';
 
-const AdminAnnouncements = () => {
-    // Dummy Data matching your screenshot
-    const [announcements, /*setAnnouncements*/] = useState([
-        { 
-            id: 1, 
-            title: 'End of Term Exams Schedule', 
-            category: 'General', 
-            desc: 'The end of term examination schedule has been finalized. Please check the attached timetable...',
-            date: 'Jun 10, 2023',
-            author: 'Dr. Sarah Miller'
-        },
-        { 
-            id: 2, 
-            title: 'Advanced Mathematics Assignment Deadline', 
-            category: 'Class', 
-            desc: 'Due to multiple requests, the deadline has been extended to June 20th.',
-            date: 'Jun 12, 2023',
-            author: 'Dr. Sarah Miller'
-        },
-        { 
-            id: 3, 
-            title: 'Campus Maintenance Notice', 
-            category: 'Urgent', 
-            desc: 'The main building will be undergoing maintenance this weekend. All classes rescheduled...',
-            date: 'Jun 8, 2023',
-            author: 'Admin Office',
-            hasImage: true
-        },
-        { 
-            id: 4, 
-            title: 'Science Fair Registration Open', 
-            category: 'General', 
-            desc: 'Registration for the annual science fair is now open. All students interested should register...',
-            date: 'Jun 5, 2023',
-            author: 'Science Department',
-            hasImage: true
-        },
-    ]);
+
+const ManageNotices = () => {
+    // Start with an empty array for Real Data
+    const [notices, setNotices] = useState([]);
+    const [formData, setFormData] = useState({ title: '', message: ''}); // State for the new notice form
+
+    // --- NEW: Fetch Notices when page loads ---
+    const fetchNotices = async () => {
+        try {
+            const response = await axios.get('http://localhost:5000/api/announcements');
+            setNotices(response.data);
+        } catch (error) {
+            console.error("Error fetching notices:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchNotices();
+    }, []);
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            // Send data to the new POST route
+            await axios.post('http://localhost:5000/api/announcements/add', formData);
+            
+            alert("Notice Posted Successfully!");
+
+        setFormData({ title: '', message: '' }); // Clear form after submit
+        fetchNotices(); 
+            
+        } catch (error) {
+            console.error("Error posting notice:", error);
+            alert("Failed to post notice. Check console.");
+        }
+    };
+
+    // --- Delete an announcement from the database ---
+    const handleDelete = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this announcement?')) return;
+        try {
+            await axios.delete(`http://localhost:5000/api/announcements/${id}`);
+            // Refresh the list to reflect the deletion
+            fetchNotices();
+        } catch (error) {
+            console.error("Error deleting announcement:", error);
+            alert("Failed to delete announcement.");
+        }
+    };
 
     return (
         <div style={styles.container}>
-            <AdminSidebar />
+            <div style={styles.sidebarWrapper}>
+                <AdminSidebar />
+            </div>
+
             <main style={styles.main}>
-                <Header title="Announcements" />
-                
                 <div style={styles.content}>
-                    
-                    {/* --- LEFT PANEL: CREATE FORM --- */}
-                    <div style={styles.createPanel}>
-                        <h3 style={styles.panelTitle}>Create Announcement</h3>
-                        
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Title</label>
-                            <input type="text" placeholder="Enter title..." style={styles.input} />
-                        </div>
-
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Description</label>
-                            <textarea rows="6" placeholder="Type your announcement here..." style={styles.textarea} />
-                        </div>
-
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Category</label>
-                            <select style={styles.select}>
-                                <option>General</option>
-                                <option>Class</option>
-                                <option>Urgent</option>
-                            </select>
-                        </div>
-
-                        <div style={styles.formGroup}>
-                            <label style={styles.label}>Image (Optional)</label>
-                            <div style={styles.uploadBox}>
-                                <FaCloudUploadAlt color="#6B7280" size={20} />
-                                <span style={{fontSize: 13, color: '#4B5563', marginLeft: 8}}>Upload</span>
-                            </div>
-                        </div>
-
-                        <button style={styles.publishBtn}>Publish Announcement</button>
+                    <div style={styles.pageHeader}>
+                        <h2 style={styles.pageTitle}><FaBullhorn style={{marginRight: 10, color: '#f59e0b'}}/> Announcements</h2>
+                        <p style={styles.subText}>Post important notices to all student dashboards instantly.</p>
                     </div>
 
-                    {/* --- RIGHT PANEL: FEED --- */}
-                    <div style={styles.feedPanel}>
-                        <div style={styles.feedHeader}>
-                            <h2 style={styles.feedTitle}>Previous Announcements</h2>
-                            <div style={styles.searchBar}>
-                                <FaSearch color="#9CA3AF" />
-                                <input placeholder="Search announcements..." style={styles.searchInput} />
-                            </div>
-                        </div>
-
-                        <div style={styles.listContainer}>
-                            {announcements.map(item => (
-                                <div key={item.id} style={styles.card}>
-                                    <div style={styles.cardHeader}>
-                                        <span style={getCategoryStyle(item.category)}>{item.category}</span>
-                                        <div style={styles.actions}>
-                                            <FaEdit style={styles.iconAction} />
-                                            <FaTrash style={styles.iconAction} />
-                                        </div>
-                                    </div>
-
-                                    <h4 style={styles.cardTitle}>{item.title}</h4>
-                                    <p style={styles.cardDesc}>{item.desc}</p>
-                                    
-                                    {item.hasImage && (
-                                        <div style={styles.imagePlaceholder}>
-                                            <FaImage color="#D1D5DB" size={40}/>
-                                        </div>
-                                    )}
-
-                                    <div style={styles.cardFooter}>
-                                        <span style={{display:'flex', alignItems:'center', gap: 5}}>
-                                            {item.date}
-                                        </span>
-                                        <span>Posted by <strong>{item.author}</strong></span>
-                                    </div>
+                    <div style={styles.grid}>
+                        {/* LEFT SIDE: POST NOTICE FORM */}
+                        <div style={styles.card}>
+                            <h3 style={styles.cardTitle}>Create New Notice</h3>
+                            <form onSubmit={handleSubmit} style={styles.form}>
+                                
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Notice Title</label>
+                                    <input 
+                                        type="text" 
+                                        name="title" 
+                                        value={formData.title} 
+                                        onChange={handleChange} 
+                                        placeholder="e.g. Exam Timetable Released" 
+                                        style={styles.input} 
+                                        required 
+                                    />
                                 </div>
-                            ))}
-                        </div>
-                    </div>
 
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Message Body</label>
+                                    <textarea 
+                                        name="message" 
+                                        value={formData.message} 
+                                        onChange={handleChange} 
+                                        placeholder="Type your detailed announcement here..." 
+                                        style={{...styles.input, height: '150px', resize: 'none'}} 
+                                        required 
+                                    />
+                                </div>
+
+                                {/* Note: We don't need a Date picker because the database will use CURDATE() automatically! */}
+
+                                <button type="submit" style={styles.submitBtn}>
+                                    <FaPaperPlane /> Post Announcement
+                                </button>
+                            </form>
+                        </div>
+
+                        {/* RIGHT SIDE: RECENT NOTICES */}
+                        <div style={styles.card}>
+                            <h3 style={styles.cardTitle}><FaBell color="#2563EB" style={{marginRight: 8}}/> Notice Board</h3>
+                            <div style={styles.listContainer}>
+                                {notices.map((notice) => (
+                                    <div key={notice.announcement_id} style={styles.noticeItem}>
+                                        <div style={styles.noticeHeader}>
+                                            <h4 style={styles.noticeTitle}>{notice.title}</h4>
+                                            <span style={styles.dateBadge}>{notice.date}</span>
+                                        </div>
+                                        <p style={styles.noticeBody}>{notice.message}</p>
+                                        <div style={styles.actionRow}>
+                                            <button
+                                                style={styles.deleteBtn}
+                                                title="Delete Notice"
+                                                onClick={() => handleDelete(notice.announcement_id)}
+                                            >
+                                                <FaTrash style={{marginRight: 5}}/> Delete
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </main>
         </div>
     );
 };
 
-// Helper for Badge Colors
-const getCategoryStyle = (category) => {
-    const base = { fontSize: 11, padding: '4px 10px', borderRadius: 12, fontWeight: '600', display: 'flex', alignItems: 'center', gap: 5 };
-    if (category === 'Urgent') return { ...base, backgroundColor: '#FEE2E2', color: '#DC2626' };
-    if (category === 'Class') return { ...base, backgroundColor: '#DBEAFE', color: '#2563EB' };
-    return { ...base, backgroundColor: '#F3F4F6', color: '#4B5563' };
-};
-
+// --- STYLES ---
 const styles = {
-    container: { display: 'flex', height: '100vh', background: '#F9FAFB', fontFamily: 'sans-serif' },
-    main: { marginLeft: '250px', flex: 1, display: 'flex', flexDirection: 'column' },
-    content: { padding: '25px', display: 'flex', gap: '30px', height: 'calc(100vh - 70px)', boxSizing: 'border-box' },
+    // Layout Logic (Kept exactly identical to prevent scrollbar issues)
+    container: { display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#F9FAFB', fontFamily: 'sans-serif', overflow: 'hidden' },
+    sidebarWrapper: { width: '250px', flexShrink: 0, height: '100%', overflowY: 'auto' },
+    main: { flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' },
+    content: { flex: 1, overflowY: 'auto', padding: '30px', boxSizing: 'border-box' },
 
-    // Left Panel (Create)
-    createPanel: { width: '350px', background: '#fff', padding: '25px', borderRadius: '12px', border: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', gap: '20px' },
-    panelTitle: { margin: 0, fontSize: '16px', color: '#111827' },
-    
-    formGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
-    label: { fontSize: '13px', fontWeight: '500', color: '#374151' },
-    input: { padding: '10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none' },
-    textarea: { padding: '10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none', resize: 'none' },
-    select: { padding: '10px', borderRadius: '6px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none', backgroundColor: '#fff' },
-    
-    uploadBox: { border: '1px solid #D1D5DB', borderRadius: '6px', padding: '10px', display: 'flex', alignItems: 'center', cursor: 'pointer', backgroundColor: '#fff', width: 'fit-content' },
-    publishBtn: { backgroundColor: '#1D4ED8', color: '#fff', padding: '12px', borderRadius: '8px', border: 'none', fontWeight: '600', cursor: 'pointer', marginTop: 'auto' },
+    pageHeader: { marginBottom: '25px' },
+    pageTitle: { margin: 0, fontSize: '24px', color: '#111827', display: 'flex', alignItems: 'center' },
+    subText: { margin: '5px 0 0 0', color: '#6B7280', fontSize: '14px' },
 
-    // Right Panel (Feed)
-    feedPanel: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-    feedHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-    feedTitle: { margin: 0, fontSize: '18px', color: '#111827' },
-    
-    searchBar: { display: 'flex', alignItems: 'center', backgroundColor: '#fff', padding: '8px 15px', borderRadius: '8px', border: '1px solid #E5E7EB' },
-    searchInput: { border: 'none', outline: 'none', marginLeft: '10px', fontSize: '13px' },
+    grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' },
 
-    listContainer: { overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '5px' },
+    // Card Styles
+    card: { backgroundColor: '#fff', borderRadius: '12px', padding: '25px', border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' },
+    cardTitle: { margin: '0 0 20px 0', fontSize: '18px', color: '#374151', borderBottom: '2px solid #F3F4F6', paddingBottom: '10px', display: 'flex', alignItems: 'center' },
+
+    // Form Styles
+    form: { display: 'flex', flexDirection: 'column', gap: '20px' },
+    inputGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
+    label: { fontSize: '14px', fontWeight: '600', color: '#374151' },
+    input: { padding: '12px', borderRadius: '8px', border: '1px solid #D1D5DB', outline: 'none', fontSize: '14px', fontFamily: 'inherit', backgroundColor: '#F9FAFB' },
+    submitBtn: { marginTop: '10px', backgroundColor: '#10B981', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', transition: '0.2s' },
+
+    // List Styles
+    listContainer: { display: 'flex', flexDirection: 'column', gap: '15px', overflowY: 'auto', paddingRight: '5px' },
+    noticeItem: { padding: '20px', backgroundColor: '#FFFBEB', borderRadius: '8px', border: '1px solid #FDE68A' },
+    noticeHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' },
+    noticeTitle: { margin: 0, fontSize: '16px', color: '#92400E', fontWeight: 'bold' },
+    dateBadge: { fontSize: '12px', color: '#B45309', backgroundColor: '#FEF3C7', padding: '3px 8px', borderRadius: '12px', fontWeight: 'bold' },
+    noticeBody: { margin: '0 0 15px 0', fontSize: '14px', color: '#78350F', lineHeight: '1.5' },
     
-    // Cards
-    card: { backgroundColor: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #E5E7EB' },
-    cardHeader: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' },
-    actions: { display: 'flex', gap: '10px' },
-    iconAction: { color: '#6B7280', cursor: 'pointer', fontSize: '14px' },
-    
-    cardTitle: { margin: '0 0 8px 0', fontSize: '16px', color: '#111827' },
-    cardDesc: { margin: 0, fontSize: '14px', color: '#4B5563', lineHeight: '1.5', marginBottom: '15px' },
-    
-    imagePlaceholder: { width: '100%', height: '160px', backgroundColor: '#111827', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px' },
-    
-    cardFooter: { display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#9CA3AF', borderTop: '1px solid #F3F4F6', paddingTop: '15px' }
+    actionRow: { display: 'flex', justifyContent: 'flex-end' },
+    deleteBtn: { backgroundColor: 'transparent', border: 'none', color: '#DC2626', cursor: 'pointer', display: 'flex', alignItems: 'center', fontSize: '13px', fontWeight: 'bold' }
 };
 
-export default AdminAnnouncements;
+export default ManageNotices;

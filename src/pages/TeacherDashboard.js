@@ -1,94 +1,274 @@
-import React from 'react';
-import { 
-     FaPlay, FaCalendarAlt, FaClock, FaUserGraduate, 
-    FaChartLine, FaCheckCircle, FaFileAlt, FaBullhorn, FaUsers
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import {
+    FaPlay, FaCalendarAlt, FaClock, FaUserGraduate,
+    FaChartLine, FaCheckCircle, FaFileAlt, FaBullhorn, FaUsers,
+    FaVideo, FaMapMarkerAlt, FaChevronLeft, FaChevronRight
 } from 'react-icons/fa';
 import TeacherSidebar from '../components/TeacherSidebar'; // Using the new Teacher Sidebar
-import Header from '../components/Header';
+
+// Hardcoded teacher ID — replace with sessionStorage/auth once login is integrated
+const TEACHER_ID = 'T2701';
+
+// Helper: generate the dynamic mini-calendar grid for the current month
+const buildCalendarData = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1).getDay(); // 0 = Sun
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    return { year, month, firstDay, daysInMonth };
+};
 
 const TeacherDashboard = () => {
+    const navigate = useNavigate();
+
+    const [teacherName, setTeacherName] = useState('');
+    const [upcomingClasses, setUpcomingClasses] = useState([]);
+    const [activeCourseCount, setActiveCourseCount] = useState(0);
+    const [dashboardAssignments, setDashboardAssignments] = useState([]);
+
+    // Mini-calendar state — tracks current visible month
+    const [calDate, setCalDate] = useState(new Date());
+
+    // ─── Fetch dashboard stats on mount ──────────────────────────────────────
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const res = await axios.get(
+                    `http://localhost:5000/api/teacher-courses/dashboard-stats/${TEACHER_ID}`
+                );
+                setTeacherName(res.data.teacherName);
+                setUpcomingClasses(res.data.upcomingClasses);
+            } catch (err) {
+                console.error("Failed to load dashboard stats:", err);
+            }
+        };
+
+        const fetchCourseCount = async () => {
+            try {
+                const res = await axios.get(
+                    `http://localhost:5000/api/teacher-courses/my-courses/${TEACHER_ID}`
+                );
+                setActiveCourseCount(res.data.length);
+            } catch (err) {
+                console.error("Failed to load course count:", err);
+            }
+        };
+
+        // Fetch latest assignments for the dashboard table
+        const fetchDashboardAssignments = async () => {
+            try {
+                const res = await axios.get(
+                    `http://localhost:5000/api/teacher-courses/dashboard-assignments/${TEACHER_ID}`
+                );
+                setDashboardAssignments(res.data);
+            } catch (err) {
+                console.error("Failed to load dashboard assignments:", err);
+            }
+        };
+
+        fetchStats();
+        fetchCourseCount();
+        fetchDashboardAssignments();
+    }, []);
+
+    // ─── Mini-calendar helpers ────────────────────────────────────────────────
+    const { year, month, firstDay, daysInMonth } = buildCalendarData(calDate);
+    const monthName = calDate.toLocaleString('default', { month: 'long' });
+    const today = new Date();
+
+    // Dates that have upcoming classes (for dot indicators on the mini-calendar)
+    const scheduledDays = new Set(
+        upcomingClasses.map(cls => {
+            const d = new Date(cls.session_date);
+            return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+        })
+    );
+
+    const renderMiniCalendar = () => {
+        const cells = [];
+        // Empty leading cells (Sunday-anchored)
+        for (let i = 0; i < firstDay; i++) cells.push(<span key={`e-${i}`}></span>);
+        for (let d = 1; d <= daysInMonth; d++) {
+            const key = `${year}-${month}-${d}`;
+            const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+            const hasClass = scheduledDays.has(key);
+            cells.push(
+                <span key={d} style={isToday ? styles.activeDate : styles.calDay}>
+                    {d}
+                    {hasClass && <span style={styles.dot}></span>}
+                </span>
+            );
+        }
+        return cells;
+    };
+
+    // ─── Format date nicely for class cards ──────────────────────────────────
+    const formatDate = (isoDate) => {
+        if (!isoDate) return '';
+        return new Date(isoDate).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    };
+
+    const formatTime = (timeStr) => {
+        if (!timeStr) return '';
+        const [h, m] = timeStr.split(':');
+        const hour = parseInt(h);
+        return `${hour % 12 || 12}:${m} ${hour < 12 ? 'AM' : 'PM'}`;
+    };
+
+    const todayDateStr = new Date().toDateString();
+    const todayClasses = upcomingClasses.filter(c => new Date(c.session_date).toDateString() === todayDateStr);
+    const futureClasses = upcomingClasses.filter(c => new Date(c.session_date).toDateString() !== todayDateStr);
+
     return (
         <div style={styles.container}>
             <TeacherSidebar />
             <main style={styles.main}>
-                <Header title="Teacher Portal" />
-                
+
+
                 <div style={styles.content}>
                     {/* Welcome Section */}
                     <div style={styles.welcomeSection}>
-                        <h1 style={styles.welcomeTitle}>Welcome back, Mr. Saman</h1>
-                        <button style={styles.createBtn}>
-                            <FaBullhorn style={{marginRight: 8}}/> Create Announcement
+                        <h1 style={styles.welcomeTitle}>
+                            Welcome, {teacherName || 'Instructor'}!
+                        </h1>
+                        {/* Create Announcement button — navigates to /teacher-announcements */}
+                        <button style={styles.createBtn} onClick={() => navigate('/teacher-announcements')}>
+                            <FaBullhorn style={{ marginRight: 8 }} /> Create Announcement
                         </button>
                     </div>
 
                     <div style={styles.dashboardGrid}>
                         {/* --- LEFT COLUMN (Main Stats) --- */}
                         <div style={styles.leftColumn}>
-                            
-                            {/* Today's Classes */}
+
+                            {/* Today's Classes Section */}
                             <div style={styles.sectionHeader}>
                                 <h3 style={styles.sectionTitle}>Today's Classes</h3>
-                                <span style={styles.linkText}>View schedule &rarr;</span>
                             </div>
 
-                            {/* Active Class Card */}
-                            <div style={styles.classCard}>
-                                <div>
-                                    <h4 style={styles.classTitle}>Advanced Mathematics</h4>
-                                    <div style={styles.classMeta}>
-                                        <span><FaClock size={12}/> 10:00 AM - 11:30 AM</span>
-                                        <span style={{marginLeft: 15}}><FaUsers size={12}/> 32 students</span>
-                                    </div>
+                            {/* Dynamic Today's Class Cards */}
+                            {todayClasses.length === 0 ? (
+                                <div style={{ ...styles.classCardSimple, justifyContent: 'center', color: '#9CA3AF' }}>
+                                    No classes scheduled for today.
                                 </div>
-                                <button style={styles.startClassBtn}><FaPlay size={10} style={{marginRight: 5}}/> Start Class</button>
+                            ) : todayClasses.map((cls, idx) => {
+                                const isOnline = cls.class_type === 'Online';
+                                const isFirst = idx === 0;
+
+                                return (
+                                    <div key={cls.session_id} style={isFirst ? styles.classCard : styles.classCardSimple}>
+                                        <div>
+                                            <h4 style={styles.classTitle}>{cls.topic || cls.course_title}</h4>
+                                            <div style={styles.classMeta}>
+                                                <span style={{ marginRight: 12, color: '#6366F1', fontWeight: 600 }}>{cls.course_title}</span>
+                                                <span><FaClock size={11} /> {formatTime(cls.session_time)}</span>
+                                                {cls.grade && <span style={{ marginLeft: 12 }}>{cls.grade}</span>}
+                                            </div>
+                                            <div style={{ ...styles.classMeta, marginTop: 6 }}>
+                                                {isOnline ? (
+                                                    <span style={{ color: '#2563EB' }}><FaVideo size={11} /> Online</span>
+                                                ) : (
+                                                    <span style={{ color: '#047857' }}><FaMapMarkerAlt size={11} /> {cls.venue || 'Physical'}</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {isOnline ? (
+                                            <button 
+                                                style={styles.startClassBtn}
+                                                onClick={() => window.open(cls.meeting_link, '_blank')}
+                                            >
+                                                <FaVideo style={{marginRight: '5px'}}/> Start Class
+                                            </button>
+                                        ) : (
+                                            <div style={styles.startsIn}>
+                                                <FaMapMarkerAlt size={12} style={{ marginRight: 5 }} />
+                                                {cls.venue || cls.grade}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+
+                            {/* Upcoming Classes Section */}
+                            <div style={{...styles.sectionHeader, marginTop: 20}}>
+                                <h3 style={styles.sectionTitle}>Upcoming Classes</h3>
                             </div>
 
-                            {/* Upcoming Class Card */}
-                            <div style={styles.classCardSimple}>
-                                <div>
-                                    <h4 style={styles.classTitle}>Physics Mechanics</h4>
-                                    <div style={styles.classMeta}>
-                                        <span><FaClock size={12}/> 1:00 PM - 2:30 PM</span>
-                                        <span style={{marginLeft: 15}}><FaUsers size={12}/> 28 students</span>
-                                    </div>
+                            {/* Dynamic Upcoming Class Cards */}
+                            {futureClasses.length === 0 ? (
+                                <div style={{ ...styles.classCardSimple, justifyContent: 'center', color: '#9CA3AF' }}>
+                                    No upcoming classes scheduled.
                                 </div>
-                                <div style={styles.startsIn}><FaCalendarAlt size={12} style={{marginRight: 5}}/> Starts in 3 hrs</div>
-                            </div>
+                            ) : futureClasses.map((cls, idx) => {
+                                const isOnline = cls.class_type === 'Online';
+
+                                return (
+                                    <div key={cls.session_id} style={styles.classCardSimple}>
+                                        <div>
+                                            <h4 style={styles.classTitle}>{cls.topic || cls.course_title}</h4>
+                                            <div style={styles.classMeta}>
+                                                <span style={{ marginRight: 12, color: '#6366F1', fontWeight: 600 }}>{cls.course_title}</span>
+                                                <span><FaClock size={11} /> {formatTime(cls.session_time)}</span>
+                                                <span style={{ marginLeft: 12 }}>
+                                                    <FaCalendarAlt size={11} /> {formatDate(cls.session_date)}
+                                                </span>
+                                            </div>
+                                            <div style={{ ...styles.classMeta, marginTop: 6 }}>
+                                                {isOnline ? (
+                                                    <span style={{ color: '#2563EB' }}><FaVideo size={11} /> Online</span>
+                                                ) : (
+                                                    <span style={{ color: '#047857' }}><FaMapMarkerAlt size={11} /> {cls.venue || 'Physical'}</span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {isOnline ? (
+                                            <button 
+                                                style={styles.startClassBtn}
+                                                onClick={() => window.open(cls.meeting_link, '_blank')}
+                                            >
+                                                <FaVideo style={{marginRight: '5px'}}/> Start Class
+                                            </button>
+                                        ) : (
+                                            <div style={styles.startsIn}>
+                                                <FaMapMarkerAlt size={12} style={{ marginRight: 5 }} />
+                                                {cls.venue || cls.grade}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
 
                             {/* Class Performance Stats */}
-                            <h3 style={{...styles.sectionTitle, marginTop: 30}}>Class Performance</h3>
+                            <h3 style={{ ...styles.sectionTitle, marginTop: 10 }}>Class Performance</h3>
                             <div style={styles.statsRow}>
-                                <StatCard 
-                                    icon={<FaUserGraduate size={20} color="#4F46E5"/>} 
-                                    label="Total Students" 
-                                    value="128" 
-                                    color="#4F46E5" 
+                                <StatCard
+                                    icon={<FaUserGraduate size={20} color="#4F46E5" />}
+                                    label="Active Courses"
+                                    value={activeCourseCount}
+                                    color="#4F46E5"
                                     bgColor="#EEF2FF"
                                     borderColor="#4F46E5"
                                 />
-                                <StatCard 
-                                    icon={<FaCalendarAlt size={20} color="#D97706"/>} 
-                                    label="Classes This Week" 
-                                    value="12" 
-                                    color="#D97706" 
+                                <StatCard
+                                    icon={<FaCalendarAlt size={20} color="#D97706" />}
+                                    label="Upcoming Classes"
+                                    value={upcomingClasses.length}
+                                    color="#D97706"
                                     bgColor="#FFFBEB"
                                     borderColor="#D97706"
-                                />
-                                <StatCard 
-                                    icon={<FaCheckCircle size={20} color="#059669"/>} 
-                                    label="Avg. Attendance" 
-                                    value="92%" 
-                                    color="#059669" 
-                                    bgColor="#ECFDF5"
-                                    borderColor="#059669"
                                 />
                             </div>
 
                             {/* Pending Assignments Table */}
                             <div style={styles.sectionHeader}>
                                 <h3 style={styles.sectionTitle}>Pending Assignments to Grade</h3>
-                                <span style={styles.linkText}>View all &rarr;</span>
+                                <span style={styles.linkText} onClick={() => navigate('/teacher-assignments')}>
+                                    View all &rarr;
+                                </span>
                             </div>
                             <div style={styles.tableCard}>
                                 <table style={styles.table}>
@@ -97,26 +277,28 @@ const TeacherDashboard = () => {
                                             <th style={styles.th}>Assignment</th>
                                             <th style={styles.th}>Subject</th>
                                             <th style={styles.th}>Submissions</th>
-                                            <th style={{...styles.th, textAlign: 'right'}}>Action</th>
+                                            <th style={{ ...styles.th, textAlign: 'right' }}>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr style={styles.row}>
-                                            <td style={styles.tdTitle}>Calculus Problem Set</td>
-                                            <td style={styles.td}>Mathematics</td>
-                                            <td style={styles.td}>18 / 32</td>
-                                            <td style={{...styles.td, textAlign: 'right'}}>
-                                                <button style={styles.gradeBtn}><FaChartLine/> Grade</button>
-                                            </td>
-                                        </tr>
-                                        <tr style={styles.row}>
-                                            <td style={styles.tdTitle}>Physics Lab Report</td>
-                                            <td style={styles.td}>Physics</td>
-                                            <td style={styles.td}>22 / 28</td>
-                                            <td style={{...styles.td, textAlign: 'right'}}>
-                                                <button style={styles.gradeBtn}><FaChartLine/> Grade</button>
-                                            </td>
-                                        </tr>
+                                        {dashboardAssignments.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="4" style={{ ...styles.td, textAlign: 'center', color: '#9CA3AF', padding: '20px' }}>
+                                                    No assignments found.
+                                                </td>
+                                            </tr>
+                                        ) : dashboardAssignments.map(a => (
+                                            <tr key={a.assignment_id} style={styles.row}>
+                                                <td style={styles.tdTitle}>{a.title}</td>
+                                                <td style={styles.td}>{a.subject}</td>
+                                                <td style={styles.td}>{a.submitted} / {a.total}</td>
+                                                <td style={{ ...styles.td, textAlign: 'right' }}>
+                                                    <button style={styles.gradeBtn} onClick={() => navigate('/teacher-assignments')}>
+                                                        <FaChartLine /> Grade
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
                                     </tbody>
                                 </table>
                             </div>
@@ -125,36 +307,51 @@ const TeacherDashboard = () => {
 
                         {/* --- RIGHT COLUMN (Widgets) --- */}
                         <div style={styles.rightColumn}>
-                            
+
                             {/* Quick Actions */}
                             <div style={styles.card}>
                                 <h3 style={styles.widgetTitle}>Quick Actions</h3>
                                 <div style={styles.actionList}>
-                                    <div style={styles.actionItem}><FaFileAlt color="#2563EB"/> Create Assignment</div>
-                                    <div style={styles.actionItem}><FaCalendarAlt color="#2563EB"/> Schedule Class</div>
-                                    <div style={styles.actionItem}><FaUsers color="#2563EB"/> View Students</div>
+                                    <div style={styles.actionItem} onClick={() => navigate('/teacher-assignments')}>
+                                        <FaFileAlt color="#2563EB" /> View Assignments
+                                    </div>
+                                    <div style={styles.actionItem} onClick={() => navigate('/teacher-schedule')}>
+                                        <FaCalendarAlt color="#2563EB" /> View Schedule
+                                    </div>
+                                    <div style={styles.actionItem} onClick={() => navigate('/teacher-courses')}>
+                                        <FaUsers color="#2563EB" /> My Courses
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Recent Activity */}
+                            {/* Mini Calendar — dynamic, current month with class dots */}
                             <div style={styles.card}>
-                                <h3 style={styles.widgetTitle}>Recent Activity</h3>
-                                <div style={styles.activityList}>
-                                    <ActivityItem text="You marked 12 assignments for Physics Class" time="2 hours ago" />
-                                    <ActivityItem text="You posted a new announcement about exam schedule" time="Yesterday" />
-                                    <ActivityItem text="You uploaded new study materials for Chemistry" time="2 days ago" />
+                                <div style={styles.calHeaderRow}>
+                                    <button style={styles.calNavBtn} onClick={() => setCalDate(new Date(year, month - 1, 1))}>
+                                        <FaChevronLeft size={11} />
+                                    </button>
+                                    <h3 style={styles.widgetTitle}>{monthName} {year}</h3>
+                                    <button style={styles.calNavBtn} onClick={() => setCalDate(new Date(year, month + 1, 1))}>
+                                        <FaChevronRight size={11} />
+                                    </button>
                                 </div>
-                            </div>
-
-                            {/* Mini Calendar (Visual Only) */}
-                            <div style={styles.card}>
-                                <h3 style={styles.widgetTitle}>September 2023</h3>
                                 <div style={styles.miniCalendar}>
-                                    <div style={styles.calRow}><span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span></div>
-                                    <div style={styles.calRow}><span>1</span><span>2</span><span style={styles.activeDate}>3</span><span>4</span><span>5</span><span>6</span><span>7</span></div>
-                                    <div style={styles.calRow}><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span></div>
-                                    <div style={styles.calRow}><span>15</span><span>16</span><span>17</span><span>18</span><span>19</span><span>20</span><span>21</span></div>
+                                    {/* Day headers */}
+                                    <div style={styles.calRow}>
+                                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
+                                            <span key={d} style={styles.calHeader}>{d}</span>
+                                        ))}
+                                    </div>
+                                    {/* Day cells */}
+                                    <div style={styles.calRow}>
+                                        {renderMiniCalendar()}
+                                    </div>
                                 </div>
+                                {upcomingClasses.length > 0 && (
+                                    <p style={{ fontSize: '11px', color: '#6B7280', marginTop: '8px', textAlign: 'center' }}>
+                                        🔵 = scheduled class
+                                    </p>
+                                )}
                             </div>
 
                         </div>
@@ -167,19 +364,12 @@ const TeacherDashboard = () => {
 
 // --- Helper Components ---
 const StatCard = ({ icon, label, value, color, bgColor, borderColor }) => (
-    <div style={{...styles.statCard, borderLeft: `4px solid ${borderColor}`}}>
-        <div style={{...styles.iconBox, backgroundColor: bgColor}}>{icon}</div>
+    <div style={{ ...styles.statCard, borderLeft: `4px solid ${borderColor}` }}>
+        <div style={{ ...styles.iconBox, backgroundColor: bgColor }}>{icon}</div>
         <div>
             <div style={styles.statLabel}>{label}</div>
-            <div style={{...styles.statValue, color: color}}>{value}</div>
+            <div style={{ ...styles.statValue, color: color }}>{value}</div>
         </div>
-    </div>
-);
-
-const ActivityItem = ({ text, time }) => (
-    <div style={styles.activityItem}>
-        <p style={styles.activityText}>{text}</p>
-        <span style={styles.activityTime}>{time}</span>
     </div>
 );
 
@@ -187,7 +377,7 @@ const styles = {
     container: { display: 'flex', height: '100vh', backgroundColor: '#F9FAFB', fontFamily: "'Inter', sans-serif" },
     main: { marginLeft: '250px', flex: 1, display: 'flex', flexDirection: 'column' },
     content: { padding: '30px', overflowY: 'auto' },
-    
+
     // Welcome Section
     welcomeSection: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' },
     welcomeTitle: { fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: 0 },
@@ -203,14 +393,14 @@ const styles = {
 
     // Class Cards
     classCard: { backgroundColor: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
-    classCardSimple: { backgroundColor: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '15px' },
+    classCardSimple: { backgroundColor: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     classTitle: { margin: '0 0 5px 0', fontSize: '16px', color: '#111827' },
-    classMeta: { fontSize: '13px', color: '#6B7280', display: 'flex', alignItems: 'center' },
-    startClassBtn: { backgroundColor: '#2563EB', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center' },
+    classMeta: { fontSize: '13px', color: '#6B7280', display: 'flex', alignItems: 'center', gap: '4px' },
+    startClassBtn: { backgroundColor: '#2563EB', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' },
     startsIn: { fontSize: '13px', color: '#6B7280', display: 'flex', alignItems: 'center' },
 
     // Stats
-    statsRow: { display: 'flex', gap: '20px', marginBottom: '30px' },
+    statsRow: { display: 'flex', gap: '20px', marginBottom: '10px' },
     statCard: { flex: 1, backgroundColor: '#fff', padding: '20px', borderRadius: '12px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '15px' },
     iconBox: { width: '45px', height: '45px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' },
     statLabel: { fontSize: '12px', color: '#6B7280', fontWeight: '600' },
@@ -229,18 +419,19 @@ const styles = {
     // Right Widgets
     card: { backgroundColor: '#fff', padding: '20px', borderRadius: '12px', border: '1px solid #E5E7EB' },
     widgetTitle: { fontSize: '15px', fontWeight: 'bold', margin: '0 0 15px 0', color: '#374151' },
-    
+
     actionList: { display: 'flex', flexDirection: 'column', gap: '15px' },
     actionItem: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#2563EB', cursor: 'pointer', fontWeight: '500' },
 
-    activityList: { display: 'flex', flexDirection: 'column', gap: '20px' },
-    activityItem: { display: 'flex', flexDirection: 'column', gap: '5px' },
-    activityText: { fontSize: '13px', color: '#374151', margin: 0 },
-    activityTime: { fontSize: '11px', color: '#9CA3AF' },
-
-    miniCalendar: { textAlign: 'center' },
-    calRow: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: '10px', fontSize: '12px', color: '#6B7280' },
-    activeDate: { backgroundColor: '#DBEAFE', color: '#1E40AF', borderRadius: '50%', width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }
+    // Mini Calendar
+    calHeaderRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
+    calNavBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', padding: '4px', borderRadius: '4px' },
+    miniCalendar: {},
+    calRow: { display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', marginBottom: '6px', textAlign: 'center' },
+    calHeader: { fontSize: '11px', color: '#9CA3AF', fontWeight: '600' },
+    calDay: { fontSize: '12px', color: '#374151', position: 'relative', padding: '3px 0', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+    activeDate: { fontSize: '12px', backgroundColor: '#DBEAFE', color: '#1E40AF', borderRadius: '50%', width: '22px', height: '22px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' },
+    dot: { width: '4px', height: '4px', borderRadius: '50%', backgroundColor: '#2563EB', display: 'block', margin: '1px auto 0' },
 };
 
 export default TeacherDashboard;

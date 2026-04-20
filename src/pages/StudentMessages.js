@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { FaPaperPlane, FaCircle } from 'react-icons/fa';
 import Sidebar from '../components/Sidebar';
-import Header from '../components/Header';
 
 const StudentMessages = () => {
     const [activeChat, setActiveChat] = useState(1);
@@ -27,7 +26,6 @@ const StudentMessages = () => {
         <div style={styles.container}>
             <Sidebar />
             <main style={styles.main}>
-                <Header />
                 <div style={styles.content}>
                     <h1 style={styles.pageTitle}>Messages</h1>
 

@@ -3,14 +3,16 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { 
     FaUser, FaEnvelope, FaLock, FaPhone, FaBook, 
-    FaEye, FaEyeSlash 
+    FaEye, FaEyeSlash, FaUserGraduate, FaChalkboardTeacher, FaIdBadge
 } from 'react-icons/fa';
 
 const Register = () => {
     const navigate = useNavigate();
-    const role = 'Student'; 
+    
+    // Toggle State for Role
+    const [currentRole, setCurrentRole] = useState('Student'); 
 
-    // 1. Updated State: Replaced 'name' with 'firstName' and 'lastName'
+    // Unified State for both Student and Teacher
     const [formData, setFormData] = useState({
         firstName: '', 
         lastName: '',
@@ -18,7 +20,8 @@ const Register = () => {
         password: '', 
         confirmPassword: '',
         contact: '', 
-        grade: '' 
+        grade: '',          // For Student
+        specialization: ''  // For Teacher
     });
 
     const [showPassword, setShowPassword] = useState(false);
@@ -48,30 +51,67 @@ const Register = () => {
         if (formData.password !== formData.confirmPassword) return setError("Passwords do not match!");
 
         try {
-            const response = await axios.post('http://localhost:5000/api/auth/register', {
-                ...formData,
-                role
-            });
-
-            setSuccess(`Welcome, ${formData.firstName}! Student ID: ${response.data.userId}`);
+            if (currentRole === 'Student') {
+                // STUDENT REGISTRATION API
+                const response = await axios.post('http://localhost:5000/api/auth/register', {
+                    ...formData,
+                    role: 'Student'
+                });
+                setSuccess(`Welcome, ${formData.firstName}! Student ID: ${response.data.userId}`);
+            } else {
+                // TEACHER REGISTRATION API
+                const teacherPayload = {
+                    first_name: formData.firstName,
+                    last_name: formData.lastName,
+                    email: formData.email,
+                    contact: formData.contact,
+                    password: formData.password,
+                    specialization: formData.specialization
+                };
+                await axios.post('http://localhost:5000/api/teachers/register', teacherPayload);
+                setSuccess(`Welcome, Teacher ${formData.firstName}! Registration successful.`);
+            }
+            
             setTimeout(() => navigate('/login'), 2500);
 
         } catch (err) {
-            setError(err.response?.data?.message || 'Registration Failed');
+            setError(err.response?.data?.message || 'Registration Failed. Check your details.');
         }
     };
 
     return (
         <div style={styles.container}>
             <div style={styles.card}>
-                <h2 style={styles.title}>Student Registration</h2>
-                <p style={styles.subtitle}>Create your student account</p>
+
+                <h2 style={styles.title}>{currentRole} Registration</h2>
+                <p style={styles.subtitle}>Create your {currentRole.toLowerCase()} account</p>
+                
+                {/* ROLE TOGGLE SWITCH */}
+                <div style={styles.toggleContainer}>
+                    <button 
+                        type="button"
+                        onClick={() => setCurrentRole('Student')} 
+                        style={currentRole === 'Student' ? styles.toggleBtnActive : styles.toggleBtnInactive}
+                    >
+                        <FaUserGraduate style={{marginRight: 8, fontSize: '16px'}} /> Student
+                    </button>
+                    <button 
+                        type="button"
+                        onClick={() => setCurrentRole('Teacher')} 
+                        style={currentRole === 'Teacher' ? styles.toggleBtnActive : styles.toggleBtnInactive}
+                    >
+                        <FaChalkboardTeacher style={{marginRight: 8, fontSize: '16px'}} /> Teacher
+                    </button>
+                </div>
+
+                
 
                 <form onSubmit={handleRegister} style={styles.form}>
                     {error && <div style={styles.error}>{error}</div>}
                     {success && <div style={styles.success}>{success}</div>}
 
-                    {/* 2. Updated Inputs: First Name & Last Name side-by-side */}
+
+
                     <div style={styles.row}>
                         <div style={styles.inputGroup}>
                             <FaUser style={styles.icon} />
@@ -93,15 +133,29 @@ const Register = () => {
                         <input name="contact" type="tel" placeholder="Phone Number" maxLength={10} onChange={handleChange} style={styles.input} required />
                     </div>
 
-                    <div style={styles.inputGroup}>
-                        <FaBook style={styles.icon} />
-                        <select name="grade" onChange={handleChange} style={styles.input} required>
-                            <option value="">Select Grade</option>
-                            <option value="Grade 12">Grade 12</option>
-                            <option value="Grade 13">Grade 13</option>
-                            <option value="Revision">Revision</option>
-                        </select>
-                    </div>
+                    {/* DYNAMIC FIELD: Grade (Student) vs Specialization (Teacher) */}
+                    {currentRole === 'Student' ? (
+                        <div style={styles.inputGroup}>
+                            <FaBook style={styles.icon} />
+                            <select name="grade" onChange={handleChange} style={styles.input} required>
+                                <option value="">Select Grade</option>
+                                <option value="Grade 12">Grade 12</option>
+                                <option value="Grade 13">Grade 13</option>
+                                <option value="Revision">Revision</option>
+                            </select>
+                        </div>
+                    ) : (
+                        <div style={styles.inputGroup}>
+                            <FaBook style={styles.icon} />
+                            <select name="specialization" onChange={handleChange} style={styles.input} required>
+                                <option value="">Select Specialization</option>
+                                <option value="Mathematics">Combined Maths</option>
+                                <option value="Physics">Physics</option>
+                                <option value="Chemistry">Chemistry</option>
+                                <option value="IT">Information Technology</option>
+                            </select>
+                        </div>
+                    )}
 
                     <div style={styles.row}>
                         <div style={styles.inputGroup}>
@@ -116,7 +170,7 @@ const Register = () => {
                         </div>
                     </div>
 
-                    <button type="submit" style={styles.button}>Create Account</button>
+                    <button type="submit" style={styles.button}>Register as {currentRole}</button>
                 </form>
 
                 <p style={styles.footerText}>Already have an account? <span style={styles.link} onClick={() => navigate('/login')}>Login here</span></p>
@@ -125,10 +179,15 @@ const Register = () => {
     );
 };
 
-// Use the same styles as before
 const styles = {
     container: { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', fontFamily: "'Segoe UI', sans-serif", padding: '20px' },
     card: { background: '#fff', padding: '40px', borderRadius: '15px', width: '100%', maxWidth: '500px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)', textAlign: 'center' },
+    
+    // Toggle Styles
+    toggleContainer: { display: 'flex', backgroundColor: '#F3F4F6', borderRadius: '10px', padding: '5px', marginBottom: '25px' },
+    toggleBtnActive: { flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', color: '#764ba2', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', transition: '0.3s' },
+    toggleBtnInactive: { flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent', color: '#6B7280', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer', transition: '0.3s' },
+
     title: { margin: '0 0 10px 0', color: '#333' },
     subtitle: { margin: '0 0 20px 0', color: '#666' },
     form: { display: 'flex', flexDirection: 'column', gap: '15px' },

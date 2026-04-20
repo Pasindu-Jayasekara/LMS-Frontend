@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-    FaHome, FaUsers, FaBook, FaCalendarCheck, 
-    FaBullhorn, FaChartBar, FaSignOutAlt, FaUser 
+    FaHome, FaUsers, FaBook, /* FaCalendarCheck, */ 
+    FaBullhorn, FaChartBar, FaSignOutAlt, FaUser, FaMoneyCheckAlt
 } from 'react-icons/fa';
 
 const AdminSidebar = () => {
@@ -10,7 +10,7 @@ const AdminSidebar = () => {
     const location = useLocation();
 
     const handleLogout = () => {
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
         navigate('/');
     };
 
@@ -32,16 +32,21 @@ const AdminSidebar = () => {
                 <div onClick={() => navigate('/admin-courses')}>
                     <NavItem icon={<FaBook />} name="Course Management" active={isActive('/admin-courses')} />
                 </div>
+                <div onClick={() => navigate('/admin-payments')}>
+                    <NavItem icon={<FaMoneyCheckAlt />} name="Payment Approvals" active={isActive('/admin-payments')} />
+                </div>
+                {/* [DISABLED] QR Attendance removed for final presentation
                 <div onClick={() => navigate('/admin-attendance')}>
                     <NavItem icon={<FaCalendarCheck />} name="Attendance" active={isActive('/admin-attendance')} />
                 </div>
+                */}
                 <div onClick={() => navigate('/admin-announcements')}>
                     <NavItem icon={<FaBullhorn />} name="Announcements" active={isActive('/admin-announcements')} />
                 </div>
                 
-                <div onClick={() => navigate('/admin-analytics')}>
+                {/*<div onClick={() => navigate('/admin-analytics')}>
                     <NavItem icon={<FaChartBar />} name="Analytics" active={isActive('/admin-analytics')} />
-                </div>
+                </div>*/}
             </nav>
 
             <div style={styles.sidebarFooter}>

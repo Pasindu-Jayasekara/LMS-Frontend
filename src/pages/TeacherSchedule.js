@@ -1,47 +1,73 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
     FaChevronLeft, FaChevronRight, FaPlus, FaCalendarAlt, 
-    FaClock, FaUsers
+    FaClock, FaUsers, FaVideo, FaMapMarkerAlt
 } from 'react-icons/fa';
 import TeacherSidebar from '../components/TeacherSidebar';
-import Header from '../components/Header';
+
+const loggedInTeacherId = sessionStorage.getItem('userId') || 'T2701';
 
 const TeacherSchedule = () => {
     const [view, setView] = useState('Month');
-    const [currentDate] = useState(new Date(2025, 9, 19)); // October 19, 2025
+    const [currentDate, setCurrentDate] = useState(new Date()); // Defaults to dynamic today
+    const [schedule, setSchedule] = useState([]);
 
-    // Dummy Data for Upcoming Classes
-    const upcomingClasses = [
-        { id: 1, title: 'Integration Techniques', course: 'Advanced Mathematics', date: 'Fri, Sep 15', time: '10:00 - 11:30', students: 32, type: 'Recurring' },
-        { id: 2, title: 'Differential Equations', course: 'Advanced Mathematics', date: 'Sun, Sep 17', time: '13:00 - 14:30', students: 30, type: 'Recurring' },
-        { id: 3, title: "Newton's Laws of Motion", course: 'Physics Mechanics', date: 'Sat, Sep 16', time: '09:00 - 10:30', students: 28, type: 'Recurring' },
-        { id: 4, title: 'Chemical Bonding', course: 'Chemistry Fundamentals', date: 'Mon, Sep 18', time: '15:00 - 16:30', students: 25, type: null },
-    ];
+    // Fetch API Data automatically
+    useEffect(() => {
+        const fetchSchedule = async () => {
+            try {
+                const res = await axios.get(`http://localhost:5000/api/teacher-courses/schedule/${loggedInTeacherId}`);
+                setSchedule(res.data);
+            } catch (error) {
+                console.error("Failed to load schedule", error);
+            }
+        };
+        fetchSchedule();
+    }, []);
+
+    const handlePrevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+    const handleNextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    const setToday = () => setCurrentDate(new Date());
 
     // Calendar Helper Functions
-    //const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+    const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
     const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).getDay(); // 0 = Sun
+    
+    // Grid starts on Monday (1), so adjust offset properly
+    const startOffset = firstDay === 0 ? 6 : firstDay - 1;
 
     const renderCalendarGrid = () => {
         const slots = [];
-        // Empty slots for previous month
-        for (let i = 0; i < firstDay - 1; i++) { // Adjusting for Mon start if needed, assuming Mon start based on image logic, but standard JS is Sun=0
-             // Image shows Mon first column. Let's stick to standard grid for simplicity or adjust. 
-             // Standard JS: 0=Sun. Image: Mon, Tue... Sun.
-             // Let's assume standard Sun start for code simplicity unless strict Mon start needed.
-             // Actually, looking at image: Mon Tue Wed Thu Fri Sat Sun.
-             // So if First Day is Sun (0), we need 6 empty slots. If Mon (1), 0 empty.
-             // Logic: (day + 6) % 7
+        // Empty slots padding logical weeks
+        for (let i = 0; i < startOffset; i++) {
+            slots.push(<div key={`empty-${i}`} style={styles.calendarCellEmpty}></div>);
         }
         
-        // Let's use simple logic for visual grid: 35 cells
-        // Just rendering days 1 to 31 matching the image layout roughly
-        // Rows: 5. 
-        for (let d = 1; d <= 31; d++) {
-            const isToday = d === 19;
+        for (let d = 1; d <= daysInMonth; d++) {
+            const today = new Date();
+            const isToday = d === today.getDate() && currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear();
+            
+            // Format match ISO logic natively parsing "YYYY-MM-DD" accurately
+            const matchDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            
+            const dayClasses = schedule.filter(cls => {
+                if(!cls.session_date) return false;
+                return cls.session_date.startsWith(matchDate);
+            });
+
             slots.push(
                 <div key={d} style={styles.calendarCell}>
-                    <span style={isToday ? styles.todayBadge : styles.dateNumber}>{d}</span>
+                    <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', width: '75%', overflow: 'hidden' }}>
+                            {dayClasses.map(cls => (
+                                <div key={cls.session_id} style={styles.cardEvent}>
+                                    <div style={styles.eventText}>{cls.session_time.substring(0,5)} - {cls.course_grade}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <span style={isToday ? styles.todayBadge : styles.dateNumber}>{d}</span>
+                    </div>
                 </div>
             );
         }
@@ -53,7 +79,6 @@ const TeacherSchedule = () => {
             <TeacherSidebar />
             
             <main style={styles.main}>
-                <Header title="Class Schedule" />
                 
                 <div style={styles.content}>
                     
@@ -89,11 +114,13 @@ const TeacherSchedule = () => {
                     {/* Calendar Section */}
                     <div style={styles.calendarCard}>
                         <div style={styles.calHeader}>
-                            <h2 style={styles.monthTitle}>October 2025</h2>
+                            <h2 style={styles.monthTitle}>
+                                {currentDate.toLocaleString('default', { month: 'long' })} {currentDate.getFullYear()}
+                            </h2>
                             <div style={styles.navGroup}>
-                                <button style={styles.navBtn}><FaChevronLeft /></button>
-                                <span style={styles.todayText}>Today</span>
-                                <button style={styles.navBtn}><FaChevronRight /></button>
+                                <button style={styles.navBtn} onClick={handlePrevMonth}><FaChevronLeft /></button>
+                                <span style={styles.todayText} onClick={setToday}>Month</span>
+                                <button style={styles.navBtn} onClick={handleNextMonth}><FaChevronRight /></button>
                             </div>
                         </div>
 
@@ -104,11 +131,6 @@ const TeacherSchedule = () => {
                         </div>
 
                         <div style={styles.calendarGrid}>
-                            {/* Empty slots for visual match with image (Mon start) */}
-                            <div style={styles.calendarCellEmpty}></div>
-                            <div style={styles.calendarCellEmpty}></div>
-                            <div style={styles.calendarCellEmpty}></div>
-                            <div style={styles.calendarCellEmpty}></div>
                             {renderCalendarGrid()}
                         </div>
                     </div>
@@ -116,22 +138,35 @@ const TeacherSchedule = () => {
                     {/* Upcoming Classes List */}
                     <h3 style={styles.sectionTitle}>Upcoming Classes</h3>
                     <div style={styles.classList}>
-                        {upcomingClasses.map(cls => (
-                            <div key={cls.id} style={styles.classRow}>
+                        {schedule.length === 0 ? (
+                            <p style={{ color: '#6B7280' }}>No upcoming classes found.</p>
+                        ) : schedule.filter(cls => {
+                            if(!cls.session_date) return false;
+                            const todayIso = new Date().toISOString().split('T')[0];
+                            return cls.session_date.split('T')[0] >= todayIso;
+                        }).slice(0, 5).map(cls => (
+                            <div key={cls.session_id} style={styles.classRow}>
                                 <div style={styles.classInfo}>
-                                    <h4 style={styles.clsTitle}>{cls.title}</h4>
-                                    <span style={styles.clsSubtitle}>{cls.course}</span>
+                                    <h4 style={styles.clsTitle}>{cls.topic}</h4>
+                                    <span style={styles.clsSubtitle}>Course: {cls.course_title} | {cls.course_grade}</span>
                                     <div style={styles.clsMeta}>
-                                        <span><FaCalendarAlt /> {cls.date}</span>
-                                        <span style={{marginLeft: 15}}><FaClock /> {cls.time}</span>
-                                        <span style={{marginLeft: 15}}><FaUsers /> {cls.students} students</span>
+                                        <span><FaCalendarAlt /> {new Date(cls.session_date).toLocaleDateString()}</span>
+                                        <span style={{marginLeft: 15}}><FaClock /> {cls.session_time}</span>
+                                        {cls.class_type === 'Online' ? (
+                                            <span style={{marginLeft: 15, color: '#2563EB'}}><FaVideo /> Online Link</span>
+                                        ) : (
+                                            <span style={{marginLeft: 15, color: '#047857'}}><FaMapMarkerAlt /> {cls.venue}</span>
+                                        )}
                                     </div>
                                 </div>
                                 
                                 <div style={styles.classActions}>
-                                    {cls.type && <span style={styles.badge}>{cls.type}</span>}
-                                    <button style={styles.actionLink}>Edit</button>
-                                    <button style={styles.actionLinkDanger}>Cancel</button>
+                                    <span style={styles.badge}>{cls.class_type || 'Virtual'}</span>
+                                    {cls.class_type === 'Online' && cls.meeting_link && (
+                                        <a href={cls.meeting_link.startsWith('http') ? cls.meeting_link : `https://${cls.meeting_link}`} target="_blank" rel="noreferrer" style={{textDecoration: 'none'}}>
+                                            <button style={styles.actionLink}>Join Zoom</button>
+                                        </a>
+                                    )}
                                 </div>
                             </div>
                         ))}
@@ -177,6 +212,9 @@ const styles = {
     
     dateNumber: { fontSize: '14px', color: '#374151' },
     todayBadge: { width: '28px', height: '28px', backgroundColor: '#2563EB', color: '#fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 'bold' },
+    
+    cardEvent: { backgroundColor: '#EFF6FF', borderRadius: '4px', padding: '2px 4px', fontSize: '10px', color: '#1E40AF', borderLeft: '2px solid #3B82F6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+    eventText: { fontWeight: '600' },
 
     // Upcoming List
     sectionTitle: { fontSize: '18px', fontWeight: '600', marginBottom: '20px', color: '#111827' },

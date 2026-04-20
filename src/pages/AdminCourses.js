@@ -1,206 +1,264 @@
-import React, { useState } from 'react';
-import { 
-    FaSearch, FaPlus, FaBook, FaEdit, FaTrash, 
-    FaCheckCircle, FaTimesCircle, FaChalkboardTeacher, FaUserGraduate 
-} from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { FaBook, FaPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import AdminSidebar from '../components/AdminSidebar';
-import Header from '../components/Header';
 
-const AdminCourses = () => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [gradeFilter, setGradeFilter] = useState('All Grades');
-    const [statusFilter, setStatusFilter] = useState('All Status');
+const ManageCourses = () => {
+    const [courses, setCourses] = useState([]);
+    const [teachers, setTeachers] = useState([]);
+    const [isEditing, setIsEditing] = useState(false);
 
-    // Dummy Data matching your screenshot
-    const courses = [
-        { id: 1, title: 'Advanced Mathematics', grade: '12th Grade', teacher: 'Dr. Sarah Miller', students: 32, status: 'Active', duration: 'Jan 15, 2023 - Dec 15, 2023', color: '#2563EB' },
-        { id: 2, title: 'Physics 101', grade: '11th Grade', teacher: 'Prof. Robert Davis', students: 28, status: 'Active', duration: 'Jan 15, 2023 - Dec 15, 2023', color: '#2563EB' },
-        { id: 3, title: 'Computer Science', grade: '12th Grade', teacher: 'Dr. James Wilson', students: 24, status: 'Active', duration: 'Jan 15, 2023 - Dec 15, 2023', color: '#2563EB' },
-        { id: 4, title: 'English Literature', grade: '10th Grade', teacher: 'Prof. Emma Thompson', students: 35, status: 'Active', duration: 'Jan 15, 2023 - Dec 15, 2023', color: '#2563EB' },
-        { id: 5, title: 'Biology', grade: '11th Grade', teacher: 'Dr. Michael Brown', students: 30, status: 'Inactive', duration: 'Jan 15, 2022 - Dec 15, 2022', color: '#2563EB' },
-        { id: 6, title: 'World History', grade: '9th Grade', teacher: 'Prof. Sophia Lee', students: 38, status: 'Active', duration: 'Jan 15, 2023 - Dec 15, 2023', color: '#2563EB' },
-    ];
-
-    // Filter Logic
-    const filteredCourses = courses.filter(course => {
-        const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesGrade = gradeFilter === 'All Grades' || course.grade === gradeFilter;
-        const matchesStatus = statusFilter === 'All Status' || course.status === statusFilter;
-        return matchesSearch && matchesGrade && matchesStatus;
+    // State for the new course form
+    const [formData, setFormData] = useState({
+        course_id: '',
+        title: '',
+        description: '',
+        start_date: '',
+        end_date: '',
+        enrollment_key: '', // Updated to track the password key
+        teacher_id: '',
+        monthly_fee: ''
     });
+
+    const handleDelete = async (course_id) => {
+        if (window.confirm("Are you sure you want to delete this course?")) {
+            try {
+                await axios.delete(`http://localhost:5000/api/courses/delete/${course_id}`);
+                alert("Course deleted successfully!");
+                fetchCourses();
+            } catch (error) {
+                console.error("Error deleting course:", error);
+                alert("Failed to delete course.");
+            }
+        }
+    };
+
+    const handleEditClick = (course) => {
+        setFormData({
+            course_id: course.id,
+            title: course.title || '',
+            description: course.description || '',
+            start_date: course.start || '',
+            end_date: course.end || '',
+            enrollment_key: course.enrollment_key || '',
+            teacher_id: course.teacher_id || '',
+            monthly_fee: course.monthly_fee || ''
+        });
+        setIsEditing(true);
+    };
+
+    // --- NEW: Fetch Courses from MySQL ---
+    const fetchCourses = async () => {
+        try {
+            const response = await axios.get('http://localhost:5000/api/courses');
+            setCourses(response.data);
+        } catch (error) {
+            console.error("Error fetching courses:", error);
+        }
+    };
+
+    // --- NEW: Fetch Teachers List ---
+    const fetchTeachers = async () => {
+        try {
+            const response = await axios.get('http://localhost:5000/api/admin/teachers/list');
+            setTeachers(response.data);
+        } catch (error) {
+            console.error("Error fetching teachers:", error);
+        }
+    };
+
+    // Load courses and teachers when page loads
+    useEffect(() => {
+        fetchCourses();
+        fetchTeachers();
+    }, []);
+
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const courseData = {
+            course_id: formData.course_id,
+            title: formData.title,
+            description: formData.description,
+            start_date: formData.start_date, 
+            end_date: formData.end_date,
+            enrollment_key: formData.enrollment_key,
+            teacher_id: formData.teacher_id || null,
+            monthly_fee: formData.monthly_fee || 3500.00
+        };
+
+        try {
+            if (isEditing) {
+                await axios.put(`http://localhost:5000/api/courses/edit/${formData.course_id}`, courseData);
+                alert('Course updated successfully!');
+            } else {
+                await axios.post('http://localhost:5000/api/courses/add', courseData);
+                alert('Course created successfully in MySQL!');
+            }
+            fetchCourses();
+            setFormData({
+                course_id: '', title: '', description: '', 
+                start_date: '', end_date: '', enrollment_key: '', teacher_id: '', monthly_fee: ''
+            });
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Error saving course:', error);
+            alert('Failed to save course. Check console for details.');
+        }
+    };
 
     return (
         <div style={styles.container}>
-            <AdminSidebar />
+            <div style={styles.sidebarWrapper}>
+                <AdminSidebar />
+            </div>
+
             <main style={styles.main}>
-                <Header title="Course Management" />
-                
                 <div style={styles.content}>
-                    
-                    {/* Stats Row */}
-                    <div style={styles.statsGrid}>
-                        <StatCard 
-                            icon={<FaBook size={20} color="#2563EB"/>} 
-                            label="Total Courses" 
-                            value="6" 
-                            bg="#DBEAFE"
-                        />
-                        <StatCard 
-                            icon={<FaChalkboardTeacher size={20} color="#7E22CE"/>} 
-                            label="Active Teachers" 
-                            value="5" 
-                            bg="#F3E8FF"
-                        />
-                        <StatCard 
-                            icon={<FaUserGraduate size={20} color="#059669"/>} 
-                            label="Enrolled Students" 
-                            value="187" 
-                            bg="#DCFCE7"
-                        />
+                    <div style={styles.pageHeader}>
+                        <h2 style={styles.pageTitle}><FaBook style={{marginRight: 10, color: '#2563EB'}}/> Course Management</h2>
+                        <p style={styles.subText}>Create new courses and assign teachers.</p>
                     </div>
 
-                    {/* Toolbar */}
-                    <div style={styles.toolbar}>
-                        <button style={styles.addBtn}>
-                            <FaPlus style={{marginRight: 8}}/> Add New Course
-                        </button>
+                    <div style={styles.grid}>
+                        {/* LEFT SIDE: CREATE COURSE FORM */}
+                        <div style={styles.card}>
+                            <h3 style={styles.cardTitle}>Add New Course</h3>
+                            <form onSubmit={handleSubmit} style={styles.form}>
+                                
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Course ID</label>
+                                    <input type="text" name="course_id" value={formData.course_id} onChange={handleChange} placeholder="e.g. C003" style={{...styles.input, backgroundColor: isEditing ? '#f3f4f6' : '#fff'}} readOnly={isEditing} required />
+                                </div>
 
-                        <div style={styles.filters}>
-                            <div style={styles.searchBox}>
-                                <FaSearch color="#9CA3AF" />
-                                <input 
-                                    placeholder="Search courses..." 
-                                    style={styles.searchInput}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-                            
-                            <select 
-                                style={styles.select}
-                                onChange={(e) => setGradeFilter(e.target.value)}
-                            >
-                                <option>All Grades</option>
-                                <option>12th Grade</option>
-                                <option>11th Grade</option>
-                                <option>10th Grade</option>
-                                <option>9th Grade</option>
-                            </select>
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Course Title</label>
+                                    <input type="text" name="title" value={formData.title} onChange={handleChange} placeholder="e.g. Chemistry" style={styles.input} required />
+                                </div>
 
-                            <select 
-                                style={styles.select}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <option>All Status</option>
-                                <option>Active</option>
-                                <option>Inactive</option>
-                            </select>
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Description</label>
+                                    <textarea name="description" value={formData.description} onChange={handleChange} placeholder="Short details about the course..." style={{...styles.input, height: '80px', resize: 'none'}} />
+                                </div>
+
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Monthly Fee (Rs.)</label>
+                                    <input type="number" step="0.01" name="monthly_fee" value={formData.monthly_fee} onChange={handleChange} placeholder="e.g. 3500.00" style={styles.input} required />
+                                </div>
+
+                                <div style={{display: 'flex', gap: '15px'}}>
+                                    <div style={{...styles.inputGroup, flex: 1}}>
+                                        <label style={styles.label}>Start Date</label>
+                                        <input type="date" name="start_date" value={formData.start_date} onChange={handleChange} style={styles.input} required />
+                                    </div>
+                                    <div style={{...styles.inputGroup, flex: 1}}>
+                                        <label style={styles.label}>End Date</label>
+                                        <input type="date" name="end_date" value={formData.end_date} onChange={handleChange} style={styles.input} required />
+                                    </div>
+                                </div>
+
+                                {/* NEW: Assign Teacher Dropdown */}
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Assign Teacher</label>
+                                    <select 
+                                        name="teacher_id" 
+                                        value={formData.teacher_id} 
+                                        onChange={handleChange} 
+                                        style={styles.input}
+                                    >
+                                        <option value="">Select a Teacher (Optional)</option>
+                                        {teachers.map(t => (
+                                            <option key={t.teacher_id} value={t.teacher_id}>
+                                                {t.first_name} {t.last_name} ({t.teacher_id})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* CHANGED: Enrollment Key instead of Teacher Dropdown */}
+                                <div style={styles.inputGroup}>
+                                    <label style={styles.label}>Course Enrollment Password</label>
+                                    <input 
+                                        type="text" 
+                                        name="enrollment_key" 
+                                        value={formData.enrollment_key} 
+                                        onChange={handleChange} 
+                                        placeholder="e.g., bio2026" 
+                                        style={styles.input} 
+                                        required 
+                                    />
+                                    <p style={{fontSize: 12, color: '#6B7280', margin: '5px 0 0 0'}}>
+                                        Share this password with the relevant teacher so they can enroll.
+                                    </p>
+                                </div>
+
+                                <button type="submit" style={{...styles.submitBtn, backgroundColor: isEditing ? '#10B981' : '#2563EB'}}>
+                                    {isEditing ? <FaEdit style={{marginRight: '8px'}} /> : <FaPlus style={{marginRight: '8px'}} />} {isEditing ? "Update Course" : "Create Course"}
+                                </button>
+                                {isEditing && (
+                                    <button type="button" onClick={() => { setIsEditing(false); setFormData({course_id: '', title: '', description: '', start_date: '', end_date: '', enrollment_key: '', teacher_id: ''}); }} style={{...styles.submitBtn, backgroundColor: '#EF4444', marginTop: '10px'}}>
+                                        Cancel Edit
+                                    </button>
+                                )}
+                            </form>
                         </div>
-                    </div>
 
-                    {/* Table */}
-                    <div style={styles.tableCard}>
-                        <table style={styles.table}>
-                            <thead>
-                                <tr style={styles.headerRow}>
-                                    <th style={styles.th}>Course Name</th>
-                                    <th style={styles.th}>Grade</th>
-                                    <th style={styles.th}>Teacher</th>
-                                    <th style={styles.th}>Students</th>
-                                    <th style={styles.th}>Status</th>
-                                    <th style={styles.th}>Duration</th>
-                                    <th style={{...styles.th, textAlign: 'right'}}>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredCourses.map(course => (
-                                    <tr key={course.id} style={styles.row}>
-                                        <td style={styles.td}>
-                                            <div style={styles.courseCell}>
-                                                <div style={styles.iconBox}><FaBook size={12}/></div>
-                                                <span style={styles.titleText}>{course.title}</span>
-                                            </div>
-                                        </td>
-                                        <td style={styles.td}>{course.grade}</td>
-                                        <td style={styles.td}>{course.teacher}</td>
-                                        <td style={styles.td}>{course.students}</td>
-                                        <td style={styles.td}>
-                                            <div style={getStatusStyle(course.status)}>
-                                                {course.status === 'Active' ? <FaCheckCircle size={10}/> : <FaTimesCircle size={10}/>}
-                                                {course.status}
-                                            </div>
-                                        </td>
-                                        <td style={{...styles.td, color: '#6B7280', fontSize: 13}}>{course.duration}</td>
-                                        <td style={{...styles.td, textAlign: 'right'}}>
-                                            <div style={styles.actions}>
-                                                <button style={styles.editBtn}><FaEdit /></button>
-                                                <button style={styles.deleteBtn}><FaTrash /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
+                        {/* RIGHT SIDE: EXISTING COURSES LIST */}
+                        <div style={styles.card}>
+                            <h3 style={styles.cardTitle}>Existing Courses</h3>
+                            <div style={styles.listContainer}>
+                                {courses.map((course, index) => (
+                                    <div key={index} style={styles.courseItem}>
+                                        <div style={{flex: 1}}>
+                                            <h4 style={styles.courseName}>{course.title} <span style={styles.courseIdBadge}>{course.id}</span></h4>
+                                            <p style={styles.courseDetail}>Instructor: {course.teacher || 'Unassigned'}</p>
+                                            <p style={styles.courseDetail}>Duration: {course.start} to {course.end}</p>
+                                            <p style={styles.courseDetail}>Enrollment Key: {course.enrollment_key || 'None'}</p>
+                                        </div>
+                                        <div style={styles.actionButtons}>
+                                            <button style={styles.editBtn} title="Edit" onClick={() => handleEditClick(course)}><FaEdit /></button>
+                                            <button style={styles.deleteBtn} title="Delete" onClick={() => handleDelete(course.id)}><FaTrash /></button>
+                                        </div>
+                                    </div>
                                 ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            </div>
+                        </div>
 
+                    </div>
                 </div>
             </main>
         </div>
     );
 };
 
-// Helper Components
-const StatCard = ({ icon, label, value, bg }) => (
-    <div style={styles.statCard}>
-        <div style={{...styles.statIconBox, backgroundColor: bg}}>{icon}</div>
-        <div>
-            <div style={{fontSize: 13, color: '#6B7280'}}>{label}</div>
-            <div style={{fontSize: 24, fontWeight: 'bold', color: '#111827'}}>{value}</div>
-        </div>
-    </div>
-);
-
-// Helper Styles
-const getStatusStyle = (status) => {
-    const base = { display: 'flex', alignItems: 'center', gap: '5px', padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', width: 'fit-content' };
-    if (status === 'Active') return { ...base, backgroundColor: '#DCFCE7', color: '#059669' }; 
-    return { ...base, backgroundColor: '#FEE2E2', color: '#DC2626' }; 
-};
-
+// --- STYLES ---
 const styles = {
-    container: { display: 'flex', height: '100vh', background: '#F9FAFB', fontFamily: 'sans-serif' },
-    main: { marginLeft: '250px', flex: 1, display: 'flex', flexDirection: 'column' },
-    content: { padding: '30px', overflowY: 'auto' },
-
-    // Stats
-    statsGrid: { display: 'flex', gap: '20px', marginBottom: '30px' },
-    statCard: { flex: 1, background: '#fff', padding: '20px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '15px', border: '1px solid #E5E7EB', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
-    statIconBox: { width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-
-    // Toolbar
-    toolbar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' },
-    addBtn: { backgroundColor: '#2563EB', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: '600' },
-    
-    filters: { display: 'flex', gap: '15px' },
-    searchBox: { display: 'flex', alignItems: 'center', backgroundColor: '#fff', padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB', width: '250px' },
-    searchInput: { border: 'none', outline: 'none', marginLeft: '10px', width: '100%', fontSize: '14px' },
-    select: { padding: '8px 12px', borderRadius: '8px', border: '1px solid #E5E7EB', fontSize: '14px', outline: 'none', cursor: 'pointer', backgroundColor: '#fff' },
-
-    // Table
-    tableCard: { backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' },
-    table: { width: '100%', borderCollapse: 'collapse' },
-    headerRow: { textAlign: 'left', borderBottom: '1px solid #E5E7EB' },
-    th: { padding: '15px 20px', fontSize: '12px', color: '#6B7280', fontWeight: '600' },
-    
-    row: { borderBottom: '1px solid #F9FAFB' },
-    td: { padding: '15px 20px', fontSize: '14px', color: '#374151', verticalAlign: 'middle' },
-    
-    courseCell: { display: 'flex', alignItems: 'center', gap: '12px' },
-    iconBox: { width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#2563EB', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' },
-    titleText: { fontWeight: '500', color: '#111827' },
-
-    actions: { display: 'flex', justifyContent: 'flex-end', gap: '10px' },
-    editBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#6B7280', padding: '5px' },
-    deleteBtn: { backgroundColor: '#EF4444', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#fff', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    container: { display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#F9FAFB', fontFamily: 'sans-serif', overflow: 'hidden' },
+    sidebarWrapper: { width: '250px', flexShrink: 0, height: '100%', overflowY: 'auto' },
+    main: { flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' },
+    content: { flex: 1, overflowY: 'auto', padding: '30px', boxSizing: 'border-box' },
+    pageHeader: { marginBottom: '25px' },
+    pageTitle: { margin: 0, fontSize: '24px', color: '#111827', display: 'flex', alignItems: 'center' },
+    subText: { margin: '5px 0 0 0', color: '#6B7280', fontSize: '14px' },
+    grid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' },
+    card: { backgroundColor: '#fff', borderRadius: '12px', padding: '25px', border: '1px solid #E5E7EB', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' },
+    cardTitle: { margin: '0 0 20px 0', fontSize: '18px', color: '#374151', borderBottom: '2px solid #F3F4F6', paddingBottom: '10px' },
+    form: { display: 'flex', flexDirection: 'column', gap: '15px' },
+    inputGroup: { display: 'flex', flexDirection: 'column', gap: '5px' },
+    label: { fontSize: '13px', fontWeight: '600', color: '#4B5563' },
+    input: { padding: '10px 12px', borderRadius: '6px', border: '1px solid #D1D5DB', outline: 'none', fontSize: '14px', fontFamily: 'inherit' },
+    submitBtn: { marginTop: '10px', backgroundColor: '#2563EB', color: '#fff', border: 'none', padding: '12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' },
+    listContainer: { display: 'flex', flexDirection: 'column', gap: '15px', overflowY: 'auto' },
+    courseItem: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', backgroundColor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E5E7EB' },
+    courseName: { margin: '0 0 5px 0', fontSize: '16px', color: '#111827', display: 'flex', alignItems: 'center', gap: '10px' },
+    courseIdBadge: { backgroundColor: '#DBEAFE', color: '#1E40AF', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold' },
+    courseDetail: { margin: '2px 0', fontSize: '13px', color: '#6B7280' },
+    actionButtons: { display: 'flex', gap: '10px' },
+    editBtn: { backgroundColor: '#fff', border: '1px solid #D1D5DB', color: '#4B5563', padding: '8px', borderRadius: '6px', cursor: 'pointer' },
+    deleteBtn: { backgroundColor: '#FEF2F2', border: '1px solid #FECACA', color: '#DC2626', padding: '8px', borderRadius: '6px', cursor: 'pointer' }
 };
 
-export default AdminCourses;
+export default ManageCourses;

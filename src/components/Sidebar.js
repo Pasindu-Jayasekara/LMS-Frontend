@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
-    FaBook, FaCalendarAlt, FaFileAlt, FaRobot, FaSignOutAlt 
+    FaBook, FaCalendarAlt, FaSignOutAlt, FaUser, FaRobot
 } from 'react-icons/fa';
 import { MdDashboard, MdPayment, MdAssignment } from 'react-icons/md';
 import { BiMessageSquareDetail } from 'react-icons/bi';
@@ -11,7 +11,7 @@ const Sidebar = () => {
     const location = useLocation();
 
     const handleLogout = () => {
-        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
         navigate('/');
     };
 
@@ -61,15 +61,6 @@ const Sidebar = () => {
                     />
                 </div>
 
-                {/* Materials Link */}
-                <div onClick={() => navigate('/student-materials')}>
-                    <NavItem 
-                        icon={<FaFileAlt />} 
-                        name="Materials" 
-                        active={isActive('/student-materials')} 
-                    />
-                </div>
-
                 {/* Payment Link */}
                 <div onClick={() => navigate('/student-payments')}>
                     <NavItem 
@@ -79,18 +70,23 @@ const Sidebar = () => {
                     />
                 </div>
 
-                {/* Messages Link */}
-                <div onClick={() => navigate('/student-messages')}>
-                    <NavItem icon={<BiMessageSquareDetail />} name="Messages" active={isActive('/student-messages')} />
+                {/* AI Link */}
+                <div onClick={() => navigate('/student/ai-assistant')}>
+                    <NavItem icon={<FaRobot />} name="AI Assistant" active={isActive('/student/ai-assistant')} />
                 </div>
 
-                {/* AI Link */}
-                <div onClick={() => navigate('/student-ai')}>
-                    <NavItem icon={<FaRobot />} name="AI Assistant" active={isActive('/student-ai')} />
+                {/* Messages Link */}
+                <div onClick={() => navigate('/student/messages')}>
+                    <NavItem icon={<BiMessageSquareDetail />} name="Messages" active={isActive('/student/messages')} />
                 </div>
             </nav>
 
             <div style={styles.sidebarFooter}>
+
+                <div style={isActive('/student-profile') ? styles.navItemActive : styles.navItem} onClick={() => navigate('/student-profile')}>
+                    <FaUser /> <span style={{marginLeft: '10px'}}>Profile</span>
+                </div>
+
                 <div style={styles.navItem} onClick={handleLogout}>
                     <FaSignOutAlt /> <span style={{marginLeft: '10px'}}>Sign out</span>
                 </div>

@@ -29,11 +29,13 @@ const Login = () => {
                 role
             });
             
-            //saves the user's login token in the browser, so they stay logged in
-            localStorage.setItem('user', JSON.stringify(response.data.user));
+            // Save the exact user properties to local storage
+            sessionStorage.setItem('userId', response.data.userId);
+            sessionStorage.setItem('role', response.data.role);
 
+            // Role-based redirection
             if (role === 'Student') navigate('/student-dashboard');
-            else if (role === 'Teacher') navigate('/teacher-dashboard');
+            else if (role === 'Teacher') navigate('/teacher-courses');
             else if (role === 'Admin') navigate('/admin-dashboard');
 
         } catch (err) {

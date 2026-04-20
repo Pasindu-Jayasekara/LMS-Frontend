@@ -1,9 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaPaperPlane, FaRobot } from 'react-icons/fa';
 import Sidebar from '../components/Sidebar';
-import Header from '../components/Header';
 
 const StudentAIAssistant = () => {
+    const navigate = useNavigate();
     const suggestions = [
         "Explain integration by parts",
         "What is Newton's third law?",
@@ -15,7 +16,6 @@ const StudentAIAssistant = () => {
         <div style={styles.container}>
             <Sidebar />
             <main style={styles.main}>
-                <Header />
                 <div style={styles.content}>
                     <h1 style={styles.pageTitle}>AI Assistant</h1>
 
@@ -58,7 +58,7 @@ const StudentAIAssistant = () => {
                             <div style={styles.helpCard}>
                                 <h3 style={styles.sideTitle}>Need More Help?</h3>
                                 <p style={styles.helpText}>If the AI can't answer your question, you can reach out to your teacher directly.</p>
-                                <button style={styles.teacherBtn}>Message Teacher</button>
+                                <button style={styles.teacherBtn} onClick={() => navigate('/student-messaging')}>Message Teacher</button>
                             </div>
                         </div>
 
