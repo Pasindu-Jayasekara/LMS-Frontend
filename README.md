@@ -1,70 +1,76 @@
-# Getting Started with Create React App
+# GCBT LMS - Frontend Client
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is the React.js frontend application for the GCBT Learning Management System. It provides dedicated, secure portals for Students, Teachers, and Administrators, featuring responsive design, protected routing, and real-time interactive components.
 
-## Available Scripts
+## 🚀 Tech Stack
+* **Framework:** React.js
+* **Routing:** React Router DOM (v6)
+* **HTTP Client:** Axios
+* **Styling:** Custom CSS (Flexbox/Grid patterns, modern card-based UI)
+* **Icons:** React Icons (`react-icons`)
 
-In the project directory, you can run:
+## ✨ Key Features by Role
 
-### `npm start`
+### 🎓 Student Portal
+* **Dashboard:** Personalized view of today's classes, upcoming assignments, and direct links to live online classes.
+* **Course Enrollment:** Browse available subjects and send enrollment requests to instructors.
+* **AI Tutor:** Integrated Gemini AI assistant for real-time study help and concept explanations.
+* **Assignments & Materials:** Download teacher-uploaded notes and submit completed assignments via secure file upload.
+* **Messaging:** Two-way messaging interface to communicate directly with assigned teachers.
+* **Payments:** Streamlined monthly fee tracking with a manual bank receipt upload system.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 👨‍🏫 Teacher Portal
+* **Class Management:** View daily schedules, launch online classes, and manage student enrollment requests.
+* **Materials & Assignments:** Upload course materials (.pdf, .docx) and track student assignment submissions.
+* **Messaging:** Dedicated inbox to respond to student questions securely within the platform.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 🛡️ Administrator Portal
+* **User Management:** Full control over registering, updating, and deleting Student and Teacher accounts.
+* **Course Creation:** Build courses and assign specific registered teachers to them.
+* **Financial Oversight:** Review and approve/reject pending student payment receipts.
 
-### `npm test`
+## 📋 Prerequisites
+Before running this project, ensure you have the following installed:
+* Node.js (v16 or higher)
+* The **GCBT LMS Backend** running locally on port 5000.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🛠️ Installation & Setup
 
-### `npm run build`
+**1. Clone the repository and navigate to the frontend folder:**
+```bash
+git clone <your-repository-url>
+cd lms-frontend
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+2. Install dependencies:
+npm install
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+3. Environment Variables:
+Create a .env file in the root of your frontend directory to link it to your backend API.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+REACT_APP_API_BASE_URL=http://localhost:5000/api
 
-### `npm run eject`
+4. Start the Application:
+npm start
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+The application will launch in your default browser at http://localhost:3000.
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+📁 Folder Structure & Architecture
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+/lms-frontend
+│
+├── /public             # Static assets (index.html, favicon, logos)
+├── /src
+│   ├── /components     # Reusable UI elements (ProtectedRoute, Sidebars, Modals)
+│   ├── /pages          # Role-specific page views 
+│   │   ├── /admin      # AdminDashboard, ManageCourses, AdminPayments...
+│   │   ├── /teacher    # TeacherDashboard, TeacherClassroom...
+│   │   └── /student    # StudentDashboard, AIAssistant, StudentMessaging...
+│   ├── App.js          # Main router configuration and role-based route wrapping
+│   ├── index.js        # React DOM rendering entry point
+│   └── index.css       # Global styles and CSS variables
+├── .env                # API configuration
+└── package.json        # Dependencies and scripts
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+🔒 Security Implementation
+This application implements Role-Based Protected Routing. Users attempting to manually navigate to unauthorized URLs (e.g., a student typing /admin-dashboard) will be intercepted by the ProtectedRoute.js wrapper, which verifies their JWT token and role state before redirecting them safely.
