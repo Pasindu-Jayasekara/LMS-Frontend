@@ -28,7 +28,6 @@ import AdminDashboard from './pages/AdminDashboard';
 import AdminUsers from './pages/AdminUsers';
 import AdminCourses from './pages/AdminCourses';
 import AdminPayments from './pages/AdminPayments';
-// import AdminAttendance from './pages/AdminAttendance'; // [DISABLED] QR Attendance removed for final presentation
 import AdminAnnouncements from './pages/AdminAnnouncements';
 import AdminProfile from './pages/AdminProfile';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -69,9 +68,6 @@ function App() {
       <Route path="/admin-users" element={<ProtectedRoute allowedRoles={['Admin']}><AdminUsers /></ProtectedRoute>} />
       <Route path="/admin-courses" element={<ProtectedRoute allowedRoles={['Admin']}><AdminCourses /></ProtectedRoute>} />
       <Route path="/admin-payments" element={<ProtectedRoute allowedRoles={['Admin']}><AdminPayments /></ProtectedRoute>} />
-      {/* [DISABLED] QR Attendance removed for final presentation
-      <Route path="/admin-attendance" element={<AdminAttendance />} />
-      */}
       <Route path="/admin-announcements" element={<ProtectedRoute allowedRoles={['Admin']}><AdminAnnouncements /></ProtectedRoute>} />
       <Route path="/admin-profile" element={<ProtectedRoute allowedRoles={['Admin']}><AdminProfile /></ProtectedRoute>} />
     </Routes>

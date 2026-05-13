@@ -38,15 +38,19 @@ const Register = () => {
         setError('');
         setSuccess('');
 
-        // Basic Validation
+        // Frontend Validation
+
+        //email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(formData.email)) return setError("Invalid email address.");
         
+        //phone number validation
         const phoneRegex = /^\d+$/;
         if (!phoneRegex.test(formData.contact) || formData.contact.length > 10) {
             return setError("Invalid phone number (Max 10 digits).");
         }
-
+        
+        //password validation
         if (formData.password.length < 8) return setError("Password must be 8+ chars.");
         if (formData.password !== formData.confirmPassword) return setError("Passwords do not match!");
 

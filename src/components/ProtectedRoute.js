@@ -14,6 +14,7 @@ import { Navigate } from 'react-router-dom';
  *   3. If userId AND role match → render the requested page normally.
  */
 const ProtectedRoute = ({ allowedRoles, children }) => {
+
     // Use userId as the "session token" — set by Login.js after a successful login
     const userId = sessionStorage.getItem('userId');
     const role   = sessionStorage.getItem('role');
@@ -25,7 +26,8 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
 
     // 2. Logged in, but wrong role for this page
     if (!allowedRoles.includes(role)) {
-        // Since Unauthorized.js is removed, route them to their respective dashboards instead
+        
+        // route them to their respective dashboards instead
         if (role === 'Admin') return <Navigate to="/admin-dashboard" replace />;
         if (role === 'Teacher') return <Navigate to="/teacher-dashboard" replace />;
         if (role === 'Student') return <Navigate to="/student-dashboard" replace />;

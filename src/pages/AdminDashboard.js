@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FaUsers, FaChalkboardTeacher, FaBook, FaBullhorn, FaMoneyBillWave } from 'react-icons/fa'; // Added FaMoneyBillWave
 import AdminSidebar from '../components/AdminSidebar';
 import { useNavigate } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -24,6 +25,13 @@ const AdminDashboard = () => {
         };
         fetchStats();
     }, []);
+
+    // Prepare data for the Bar Chart
+    const chartData = [
+        { name: 'Students', count: stats.students },
+        { name: 'Teachers', count: stats.teachers },
+        { name: 'Courses', count: stats.courses}
+    ];
 
     return (
         <div style={styles.container}>
@@ -70,6 +78,19 @@ const AdminDashboard = () => {
                         
                     </div>
 
+                    {/* Bar chart */}
+                    <div style={styles.chartCard}>
+                        <h3 style={styles.chartTitle}>Bar Chart Showing Total Students, Teachers, and Courses</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={chartData}>
+                                <XAxis dataKey="name" />
+                                <YAxis />
+                                <Tooltip />
+                                <Bar dataKey="count" fill="#3B82F6" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+
                     {/* Action Cards */}
                     <div style={styles.actionsGrid}>
                         <div style={styles.actionCard}>
@@ -101,6 +122,9 @@ const styles = {
     statIconWrapper: { backgroundColor: '#f3f4f6', padding: '15px', borderRadius: '50%' },
     statLabel: { margin: 0, fontSize: '14px', color: '#6B7280', fontWeight: '500' },
     statNumber: { margin: '5px 0 0 0', fontSize: '24px', color: '#111827', fontWeight: 'bold' }, // Adjusted font size slightly so big numbers fit
+
+    chartCard: { backgroundColor: '#fff', borderRadius: '8px', padding: '25px', border: '1px solid #e5e7eb', marginBottom: '30px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
+    chartTitle: { margin: '0 0 20px 0', fontSize: '18px', color: '#374151', fontWeight: 'bold' },
 
     actionsGrid: { display: 'grid', gridTemplateColumns: '1fr', gap: '20px' },
     actionCard: { backgroundColor: '#fff', borderRadius: '8px', padding: '25px', border: '1px solid #e5e7eb' },
