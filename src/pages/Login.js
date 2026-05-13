@@ -22,6 +22,7 @@ const Login = () => {
         setError('');
         setLoading(true);
 
+
         try {
             const response = await axios.post('http://localhost:5000/api/auth/login', {
                 email, 
@@ -34,9 +35,14 @@ const Login = () => {
             sessionStorage.setItem('role', response.data.role);
 
             // Role-based redirection
-            if (role === 'Student') navigate('/student-dashboard');
-            else if (role === 'Teacher') navigate('/teacher-courses');
-            else if (role === 'Admin') navigate('/admin-dashboard');
+        
+            if (role === 'Student') {
+                navigate('/student-dashboard');
+            } else if (role === 'Teacher') {
+                navigate('/teacher-courses');
+            } else if (role === 'Admin'){
+                 navigate('/admin-dashboard');
+            }
 
         } catch (err) {
             setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
@@ -79,13 +85,15 @@ const Login = () => {
 
                     <div style={styles.inputGroup}>
                         <FaEnvelope style={styles.icon} />
+
+                        {/*Basic front end validation (HTML) — browser handles it automatically*/}
                         <input 
                             type="email" 
                             placeholder="Email Address" 
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             style={styles.input}
-                            required
+                            required  //browser blocks submit if empty
                         />
                     </div>
 

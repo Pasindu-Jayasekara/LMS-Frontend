@@ -20,7 +20,7 @@ const StudentCourses = () => {
     const [myCourses, setMyCourses] = useState([]);
     const [loadingRequest, setLoadingRequest] = useState(null); // tracks which card is loading
 
-    // ─── Fetch all data on mount ──────────────────────────────────────────────
+    // Fetch all data on mount
     const fetchAvailable = async () => {
         try {
             const res = await axios.get(`http://localhost:5000/api/student/courses/available/${STUDENT_ID}`);
@@ -44,7 +44,7 @@ const StudentCourses = () => {
         fetchMyCourses();
     }, []);
 
-    // ─── Handle Request to Join ───────────────────────────────────────────────
+    // Handle Request to Join
     const handleRequestJoin = async (courseId, courseTitle) => {
         const currentRole = sessionStorage.getItem('role');
         if (currentRole && currentRole !== 'Student') {
@@ -58,6 +58,7 @@ const StudentCourses = () => {
         );
         if (!confirmed) return;
 
+        
         setLoadingRequest(courseId);
         try {
             await axios.post('http://localhost:5000/api/student/courses/request-join', {
