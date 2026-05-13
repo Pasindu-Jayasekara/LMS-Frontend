@@ -46,7 +46,6 @@ npm install
 
 3. Environment Variables:
 Create a .env file in the root of your frontend directory to link it to your backend API.
-
 REACT_APP_API_BASE_URL=http://localhost:5000/api
 
 4. Start the Application:
@@ -73,4 +72,7 @@ The application will launch in your default browser at http://localhost:3000.
 
 
 🔒 Security Implementation
-This application implements Role-Based Protected Routing. Users attempting to manually navigate to unauthorized URLs (e.g., a student typing /admin-dashboard) will be intercepted by the ProtectedRoute.js wrapper, which verifies their JWT token and role state before redirecting them safely.
+
+This application implements Role-Based Protected Routing. Users attempting to manually navigate to unauthorized URLs
+(e.g., a student typing /admin-dashboard) will be intercepted by the ProtectedRoute.js wrapper,
+which verifies their JWT token and role state before redirecting them safely.
